@@ -52,3 +52,22 @@ if sig != last:
     print(f"CHANGED: {last or 'none'} -> {sig}  (${price:.2f})  [pushed to phone]")
 else:
     print(f"no change: {sig}  (${price:.2f})")
+
+# --- position-aware exit alert: ping to CLOSE if the trend turns against an open trade ---
+POS = "position.json"
+if os.path.exists(POS):
+    try:
+        pos = json.load(open(POS))
+    except Exception:
+        pos = {}
+    d = pos.get("dir")
+    if d and not pos.get("exit_alerted"):
+        opposite = (d == "SELL" and sig == "BUY") or (d == "BUY" and sig == "SELL")
+        if opposite:
+            push_phone(f"CLOSE YOUR {d}",
+                       f"Trend flipped to {sig}. Your {d} from {pos.get('entry')} is now against the trend - time to get out.")
+            pos["exit_alerted"] = True
+            json.dump(pos, open(POS, "w"))
+            print(f"EXIT ALERT: close {d} (signal now {sig})")
+        else:
+            print(f"position {d} still aligned with signal {sig} - holding")
