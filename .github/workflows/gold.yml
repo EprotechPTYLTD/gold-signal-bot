@@ -1,0 +1,37 @@
+name: gold-signal
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'      # every 15 min (GitHub may delay a few min — fine for an hourly signal)
+  workflow_dispatch: {}          # lets us trigger a manual test run
+
+permissions:
+  contents: write                # so the run can commit the flip state back
+
+concurrency:
+  group: gold-signal             # never let two runs race on the state commit
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check gold signal
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: python3 goldcheck.py
+
+      - name: Persist state on flip
+        run: |
+          if [[ -n "$(git status --porcelain .last_signal)" ]]; then
+            git config user.name "gold-bot"
+            git config user.email "actions@users.noreply.github.com"
+            git add .last_signal
+            git commit -m "signal flip"
+            git push
+          else
+            echo "no flip this run"
+          fi
