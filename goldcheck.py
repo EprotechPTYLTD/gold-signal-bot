@@ -59,11 +59,12 @@ else:
     st["streak"] = st["streak"] + 1 if raw == st.get("cand") else 1
     st["cand"] = raw
     if st["streak"] >= CONFIRM_N:
-        push_phone(f"TREND CONVERTED: {confirmed} -> {raw}",
-                   f"Confirmed. The hourly trend has fully flipped from {confirmed} to {raw} "
-                   f"(held {CONFIRM_N} checks). Gold ${price:.0f}.")
-        st["confirmed"], st["cand"], st["streak"] = raw, None, 0
-        alerted = True
+        if raw == "BUY":          # ONLY ping the SELL -> BUY reversal up. Nothing else.
+            push_phone("GOLD REVERSAL: SELL -> BUY",
+                       f"Confirmed reversal up - the downtrend has flipped to BUY "
+                       f"(held {CONFIRM_N} checks). Gold ${price:.0f}.")
+            alerted = True
+        st["confirmed"], st["cand"], st["streak"] = raw, None, 0   # BUY->SELL updates silently
 
 json.dump(st, open(STATE, "w"))
 print(f"raw={raw}  confirmed={st['confirmed']}  building={st['cand']}  streak={st['streak']}  "
